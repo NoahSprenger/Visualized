@@ -249,18 +249,13 @@ int Tasks::delete_task(int id)
 
 	sqlite3_exec(DB, query.c_str(), callback, NULL, NULL);
 
-	// re-update
-	// if statement needed to avoid out of range error that results in a segmentation fault
-	if (delete_vec.size() > 0)
+	for (unsigned int i = 0; i < delete_vec.size(); i++)
 	{
-		for (unsigned int i = 0; i <= delete_vec.size(); i++)
+		exit = sqlite3_exec(DB, delete_vec[i].c_str(), NULL, 0, &messaggeError);
+		if (exit != SQLITE_OK)
 		{
-			exit = sqlite3_exec(DB, delete_vec[i].c_str(), NULL, 0, &messaggeError);
-			if (exit != SQLITE_OK)
-			{
-				std::cerr << "Error update" << std::endl;
-				sqlite3_free(messaggeError);
-			}
+			std::cerr << "Error update" << std::endl;
+			sqlite3_free(messaggeError);
 		}
 	}
 	// acts as a reset

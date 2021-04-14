@@ -5,8 +5,6 @@
 #include "sqlite3.h"
 
 // ! Some ugly global variables ! //
-// SFML window
-sf::RenderWindow window(sf::VideoMode(1200, 675), "Visualized", sf::Style::Titlebar | sf::Style::Close);
 // Box2d world for physics
 b2World world(b2Vec2(0.0, 9.8));
 // Title and font
@@ -68,38 +66,59 @@ int fill_box()
 	return 0;
 }
 
-void update_input(void);
-void update_input()
+void update_input(sf::Window& window);
+void update_input(sf::Window& window)
 {
 	sf::Event event;
 	while (window.pollEvent(event))
 	{
-		if (event.type == sf::Event::KeyPressed)
+		switch (event.type)
 		{
-			if (event.key.code == sf::Keyboard::Enter)
-			{
-				tasks.create_task(holder);
-				holder = "";
-				typing.setString("");
-				if (first_time)
+			case sf::Event::KeyPressed:
+				if (event.key.code == sf::Keyboard::Enter)
 				{
-					fill_box();
-					first_time = false;
-				}
-				else
-				{
-					for (unsigned int i = 0; i < circ_vec.size(); i++)
+					tasks.create_task(holder);
+					holder = "";
+					typing.setString("");
+					if (first_time)
 					{
-						physics::deleteBlock(world, circ_vec[i]);
+						fill_box();
+						first_time = false;
 					}
-					circ_vec.clear();
-					fill_box();
+					else
+					{
+						for (unsigned int i = 0; i < circ_vec.size(); i++)
+						{
+							physics::deleteBlock(world, circ_vec[i]);
+						}
+						circ_vec.clear();
+						fill_box();
+					}
 				}
-			}
-		}
-		if (event.type == sf::Event::Closed)
-		{
-			window.close();
+				break;
+			case sf::Event::Closed:
+				window.close();
+				break;
+
+			case sf::Event::TextEntered:
+				try
+				{
+					if (event.text.unicode == '\b')
+					{
+						holder.erase(holder.size() - 1, 1);
+					}
+					else if (event.text.unicode < 128)
+					{
+						holder += static_cast<char>(event.text.unicode);
+					}
+					typing.setString(holder);
+				}
+				// catches the error when you try and backspace when there is not text
+				catch (const std::out_of_range&)
+				{
+				}
+			default:
+				break;
 		}
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
 		{
@@ -152,32 +171,12 @@ void update_input()
 				}
 			}
 		}
-		// detects all text input
-		try
-		{
-			if (event.type == sf::Event::TextEntered)
-			{
-				if (event.text.unicode == '\b')
-				{
-					holder.erase(holder.size() - 1, 1);
-				}
-				else if (event.text.unicode < 128)
-				{
-					holder += static_cast<char>(event.text.unicode);
-				}
-				typing.setString(holder);
-			}
-		}
-		// catches the error when you try and backspace when there is not text
-		catch (const std::out_of_range&)
-		{
-		}
 	}
 }
 
 // for drawing sfml objects
-void draw_sfml(void);
-void draw_sfml()
+void draw_sfml(sf::RenderWindow& window);
+void draw_sfml(sf::RenderWindow& window)
 {
 	window.draw(title);
 	window.draw(list_base_rec);
@@ -201,6 +200,8 @@ void draw_sfml()
 
 int main()
 {
+	// SFML window
+	sf::RenderWindow window(sf::VideoMode(1200, 675), "Visualized", sf::Style::Titlebar | sf::Style::Close);
 	util::Platform platform;
 	tasks.create_task_database();
 	tasks.initalize_database();
@@ -233,8 +234,8 @@ int main()
 	while (window.isOpen() && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //the main game loop, exits if someone closes the window
 	{
 		window.clear(sf::Color::Black); //clears the screen
-		draw_sfml();
-		update_input();
+		draw_sfml(window);
+		update_input(window);
 		physics::displayWorld(world, window);
 		window.display(); //displays everything on the video card to the monitor
 	}					  //ends the game loop
